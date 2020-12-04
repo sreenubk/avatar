@@ -1,5 +1,8 @@
 package com.lotus.security.avatar.auth;
 
+import com.lotus.security.avatar.jwt.ApplicationUserAuthenticationFilter;
+import com.lotus.security.avatar.jwt.JwtTokenVerifieFilter;
+import io.jsonwebtoken.Jwt;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,12 +14,14 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.stereotype.Repository;
+import org.springframework.web.filter.OncePerRequestFilter;
 
 import static com.lotus.security.avatar.auth.SecurityPermissions.*;
 import static com.lotus.security.avatar.auth.SecurityRoles.*;
@@ -37,6 +42,11 @@ public class ApplicationSecurityConfig extends WebSecurityConfigurerAdapter {
     protected void configure(HttpSecurity http) throws Exception {
         http
                 .csrf().disable()
+                .sessionManagement()
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                .and()
+                .addFilter( new ApplicationUserAuthenticationFilter(authenticationManager()))
+                .addFilterAfter(new JwtTokenVerifieFilter(), ApplicationUserAuthenticationFilter.class)
                 .authorizeRequests()
                 .antMatchers("/","index.html","/css/*", "/js/*")
                 .permitAll()
@@ -46,9 +56,9 @@ public class ApplicationSecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers(HttpMethod.DELETE,"/auth/**").hasAuthority(DELETE.getPermission())
                 .antMatchers(HttpMethod.PUT,"/auth/**").hasAuthority(UPDATE.getPermission())
                 .anyRequest()
-                .authenticated()
-                .and()
-                .httpBasic();
+                .authenticated();
+//                .and()
+//                .httpBasic();
     }
 
     @Override
